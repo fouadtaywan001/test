@@ -1,0 +1,134 @@
+<Window x:Class="Pusher.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:Pusher.App.ViewModels"
+        xmlns:views="clr-namespace:Pusher.App.Views"
+        Title="GitHub Schedule Pusher"
+        Icon="pack://application:,,,/Assets/logo256.png"
+        Width="1080" Height="720"
+        MinWidth="860" MinHeight="560"
+        Background="{StaticResource Bg}"
+        FontFamily="{StaticResource SansFont}"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        MaxHeight="{x:Static SystemParameters.MaximizedPrimaryScreenHeight}">
+
+    <!-- Custom dark chrome: the stock white title bar is replaced by our own -->
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="36" ResizeBorderThickness="6"
+                      GlassFrameThickness="0" UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
+
+    <Window.Resources>
+        <DataTemplate DataType="{x:Type vm:DashboardViewModel}">
+            <views:DashboardView />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:NewProjectViewModel}">
+            <views:NewProjectView />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:LogsViewModel}">
+            <views:LogsView />
+        </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:SettingsViewModel}">
+            <views:SettingsView />
+        </DataTemplate>
+    </Window.Resources>
+
+    <Border BorderBrush="{StaticResource WindowEdge}" BorderThickness="1">
+        <DockPanel>
+
+            <!-- Title bar -->
+            <Grid DockPanel.Dock="Top" Height="36" Background="{StaticResource Surface}">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
+                    <Path Data="{StaticResource AppLogo}" Fill="{StaticResource Text}"
+                          Width="15" Height="15" Stretch="Uniform" VerticalAlignment="Center" />
+                    <TextBlock Text="GitHub Schedule Pusher" Foreground="{StaticResource Text}"
+                               FontSize="12" FontWeight="Medium" Margin="9,0,0,0" VerticalAlignment="Center" />
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Top">
+                    <Button Style="{StaticResource CaptionButton}" Tag="{StaticResource IconMinimize}"
+                            Click="OnMinimizeClick" WindowChrome.IsHitTestVisibleInChrome="True"
+                            AutomationProperties.Name="Minimize" />
+                    <Button Click="OnMaxRestoreClick" WindowChrome.IsHitTestVisibleInChrome="True"
+                            AutomationProperties.Name="Maximize or restore">
+                        <Button.Style>
+                            <!-- Icon flips between maximize and restore with the window state -->
+                            <Style TargetType="Button" BasedOn="{StaticResource CaptionButton}">
+                                <Setter Property="Tag" Value="{StaticResource IconMaximize}" />
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                 Value="Maximized">
+                                        <Setter Property="Tag" Value="{StaticResource IconRestore}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Button.Style>
+                    </Button>
+                    <Button Style="{StaticResource CaptionCloseButton}"
+                            Click="OnCloseClick" WindowChrome.IsHitTestVisibleInChrome="True"
+                            AutomationProperties.Name="Close" />
+                </StackPanel>
+            </Grid>
+
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="248" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+        <!-- Sidebar navigation -->
+        <Border Grid.Column="0" Background="{StaticResource Surface}"
+                BorderBrush="{StaticResource Border}" BorderThickness="0,0,1,0">
+            <DockPanel Margin="16,20">
+
+                <!-- Brand header: app logo + name -->
+                <StackPanel DockPanel.Dock="Top" Margin="0,0,0,24">
+                    <StackPanel Orientation="Horizontal">
+                        <Border Width="40" Height="40" CornerRadius="10" Background="{StaticResource Bg}"
+                                BorderBrush="{StaticResource WindowEdge}" BorderThickness="1">
+                            <Path Data="{StaticResource AppLogo}" Fill="{StaticResource Text}"
+                                  Width="21" Height="21" Stretch="Uniform"
+                                  HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <StackPanel VerticalAlignment="Center" Margin="12,0,0,0">
+                            <TextBlock Text="Schedule Pusher" Foreground="{StaticResource Text}"
+                                       FontSize="15" FontWeight="Bold" />
+                            <TextBlock Text="GitHub commit scheduler" Style="{StaticResource Subtle}"
+                                       FontSize="11" Margin="0,1,0,0" />
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Footer status -->
+                <Border DockPanel.Dock="Bottom" Style="{StaticResource Pill}" HorizontalAlignment="Left">
+                    <StackPanel Orientation="Horizontal">
+                        <Ellipse Width="8" Height="8" Fill="{StaticResource Brand}" VerticalAlignment="Center" />
+                        <TextBlock Text="Worker managed in Settings" Style="{StaticResource Subtle}"
+                                   Margin="8,0,0,0" VerticalAlignment="Center" />
+                    </StackPanel>
+                </Border>
+
+                <!-- Nav items -->
+                <StackPanel DockPanel.Dock="Top">
+                    <TextBlock Text="MENU" Style="{StaticResource Subtle}" FontSize="10"
+                               FontWeight="SemiBold" Margin="4,0,0,8" />
+                    <Button Content="Dashboard" Style="{StaticResource NavItem}"
+                            Command="{Binding ShowDashboard}" Tag="{Binding IsDashboard}" />
+                    <Button Content="New project" Style="{StaticResource NavItem}"
+                            Command="{Binding ShowNewProject}" Tag="{Binding IsNewProject}" />
+                    <Button Content="Logs" Style="{StaticResource NavItem}"
+                            Command="{Binding ShowLogs}" Tag="{Binding IsLogs}" />
+                    <Button Content="Settings" Style="{StaticResource NavItem}"
+                            Command="{Binding ShowSettings}" Tag="{Binding IsSettings}" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+                <!-- Active view -->
+                <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+                    <ContentControl Content="{Binding Current}" Margin="32,28" />
+                </ScrollViewer>
+            </Grid>
+        </DockPanel>
+    </Border>
+</Window>

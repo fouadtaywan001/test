@@ -1,0 +1,60 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Allows building the WPF project on non-Windows CI/dev machines. -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <AssemblyName>GitHubSchedulePusher</AssemblyName>
+    <RootNamespace>Pusher.App</RootNamespace>
+    <!-- Exe/taskbar icon; WinForms is enabled solely for the NotifyIcon tray support. -->
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <UseWindowsForms>true</UseWindowsForms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\logo256.png" />
+    <Content Include="Assets\app.ico" CopyToOutputDirectory="PreserveNewest" />
+    <!-- WinForms is only for NotifyIcon; drop its implicit global using so
+         UserControl/MessageBox/etc. keep resolving to the WPF types. -->
+    <Using Remove="System.Windows.Forms" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Pusher.Core\Pusher.Core.csproj" />
+    <ProjectReference Include="..\Pusher.Git\Pusher.Git.csproj" />
+    <ProjectReference Include="..\Pusher.GitHub\Pusher.GitHub.csproj" />
+    <ProjectReference Include="..\Pusher.Storage\Pusher.Storage.csproj" />
+    <ProjectReference Include="..\Pusher.Ipc\Pusher.Ipc.csproj" />
+    <!-- Build the worker whenever the app builds, without referencing its assembly
+         (different TFM: net8.0 vs net8.0-windows). Its output is copied below. -->
+    <ProjectReference Include="..\Pusher.Service\Pusher.Service.csproj"
+                      ReferenceOutputAssembly="false"
+                      Private="false"
+                      SkipGetTargetFrameworkProperties="true" />
+  </ItemGroup>
+
+  <!-- Ship the worker in a "service" subfolder next to the app so
+       WorkerServiceManager.FindServiceExe() always finds it. -->
+  <Target Name="CopyWorkerServiceOnBuild" AfterTargets="Build">
+    <ItemGroup>
+      <WorkerFiles Include="..\Pusher.Service\bin\$(Configuration)\net8.0\**\*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(WorkerFiles)"
+          DestinationFiles="@(WorkerFiles->'$(OutDir)service\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+  <Target Name="CopyWorkerServiceOnPublish" AfterTargets="Publish">
+    <ItemGroup>
+      <WorkerPublishFiles Include="..\Pusher.Service\bin\$(Configuration)\net8.0\**\*.*" />
+    </ItemGroup>
+    <Copy SourceFiles="@(WorkerPublishFiles)"
+          DestinationFiles="@(WorkerPublishFiles->'$(PublishDir)service\%(RecursiveDir)%(Filename)%(Extension)')"
+          SkipUnchangedFiles="true" />
+  </Target>
+
+</Project>

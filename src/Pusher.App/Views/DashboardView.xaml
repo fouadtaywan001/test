@@ -1,0 +1,394 @@
+<UserControl x:Class="Pusher.App.Views.DashboardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <StackPanel>
+        <!-- Header: title on its own line, toolbar wraps below so buttons never
+             overlap the title on narrow windows -->
+        <StackPanel Margin="0,0,0,16">
+            <TextBlock Text="Dashboard" Style="{StaticResource PageTitle}" />
+            <TextBlock Text="Your scheduled push plans and their progress"
+                       Style="{StaticResource Subtle}" Margin="0,2,0,0" />
+            <WrapPanel Margin="0,12,0,0">
+                <Button Content="Push now" Style="{StaticResource PrimaryButton}"
+                        Command="{Binding PushNowCommand}" Margin="0,0,8,8"
+                        ToolTip="Runs the selected project's NEXT commit immediately (order is always kept)" />
+                <Button Content="Refresh" Style="{StaticResource GhostButton}"
+                        Command="{Binding RefreshCommand}" Margin="0,0,8,8" />
+                <Button Content="Export report" Style="{StaticResource GhostButton}"
+                        Command="{Binding ExportReportCommand}" Margin="0,0,8,8"
+                        ToolTip="Writes a planned-vs-actual markdown report for the selected project to your Desktop" />
+                <Button Content="Retry failed" Style="{StaticResource GhostButton}"
+                        Command="{Binding RetryFailedCommand}" Margin="0,0,8,8"
+                        ToolTip="Requeues failed commits of the selected project — the worker retries within a minute" />
+                <Button Content="Edit script" Style="{StaticResource GhostButton}"
+                        Command="{Binding EditScriptCommand}" Margin="0,0,8,8"
+                        ToolTip="View and edit the project's stored PushScript — saving re-plans pending pushes only" />
+                <Button Content="Reschedule" Style="{StaticResource GhostButton}"
+                        Command="{Binding RescheduleCommand}" Margin="0,0,8,8"
+                        ToolTip="Repair missed pushes and view the upcoming timeline across all projects" />
+                <Button Content="Pause / Resume" Style="{StaticResource GhostButton}"
+                        Command="{Binding TogglePauseCommand}" Margin="0,0,8,8" />
+                <Button Content="Delete" Style="{StaticResource GhostButton}"
+                        Foreground="{StaticResource Danger}"
+                        Command="{Binding DeleteCommand}" Margin="0,0,8,8" />
+            </WrapPanel>
+        </StackPanel>
+
+        <!-- Worker-down warning: pushes cannot happen while the worker is stopped -->
+        <Border Background="#2D1517" BorderBrush="{StaticResource Danger}" BorderThickness="1"
+                CornerRadius="8" Padding="14,10" Margin="0,0,0,16"
+                Visibility="{Binding WorkerDown, Converter={StaticResource BoolToVisibility}}">
+            <StackPanel Orientation="Horizontal">
+                <Ellipse Width="8" Height="8" Fill="{StaticResource Danger}" VerticalAlignment="Center" />
+                <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap"
+                           Foreground="{StaticResource Text}"
+                           Text="The background worker is NOT running — scheduled pushes will not happen. Open Settings and start the worker (or reinstall it after a rebuild)." />
+            </StackPanel>
+        </Border>
+
+        <!-- Outdated-worker warning: an old service binary is answering the pipe -->
+        <Border Background="#2A2113" BorderBrush="#D29922" BorderThickness="1"
+                CornerRadius="8" Padding="14,10" Margin="0,0,0,16"
+                Visibility="{Binding WorkerOutdated, Converter={StaticResource BoolToVisibility}}">
+            <StackPanel Orientation="Horizontal">
+                <Ellipse Width="8" Height="8" Fill="#D29922" VerticalAlignment="Center" />
+                <TextBlock Margin="10,0,0,0" VerticalAlignment="Center" TextWrapping="Wrap"
+                           Foreground="{StaticResource Text}"
+                           Text="The worker service is running an OUTDATED build — recent fixes are not active. Open Settings, reinstall the worker, then start it again." />
+            </StackPanel>
+        </Border>
+
+        <!-- Stat cards -->
+        <Grid Margin="0,0,0,20">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Style="{StaticResource Card}" Margin="0,0,8,0">
+                <StackPanel>
+                    <TextBlock Text="Projects" Style="{StaticResource Subtle}" FontSize="11" />
+                    <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                        <TextBlock Text="{Binding TotalProjects}" Foreground="{StaticResource Text}"
+                                   FontSize="26" FontWeight="Bold" />
+                        <TextBlock Text="{Binding ActiveProjects, StringFormat={}{0} active}"
+                                   Style="{StaticResource Subtle}" VerticalAlignment="Bottom" Margin="8,0,0,4" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="1" Style="{StaticResource Card}" Margin="8,0">
+                <StackPanel>
+                    <TextBlock Text="Commits pushed" Style="{StaticResource Subtle}" FontSize="11" />
+                    <TextBlock Text="{Binding TotalPushed}" Foreground="{StaticResource Brand}"
+                               FontSize="26" FontWeight="Bold" Margin="0,4,0,0" />
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="2" Style="{StaticResource Card}" Margin="8,0">
+                <StackPanel>
+                    <TextBlock Text="Pending" Style="{StaticResource Subtle}" FontSize="11" />
+                    <TextBlock Text="{Binding TotalPending}" Foreground="{StaticResource Accent}"
+                               FontSize="26" FontWeight="Bold" Margin="0,4,0,0" />
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="3" Style="{StaticResource Card}" Margin="8,0,0,0">
+                <StackPanel>
+                    <TextBlock Text="Next push" Style="{StaticResource Subtle}" FontSize="11" />
+                    <TextBlock Text="{Binding NextPushOverall}" Foreground="{StaticResource Text}"
+                               FontSize="16" FontWeight="SemiBold" Margin="0,8,0,0" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Projects -->
+        <TextBlock Text="Projects" Foreground="{StaticResource Text}" FontWeight="SemiBold"
+                   FontSize="14" Margin="0,0,0,10" />
+
+        <TextBlock Text="No projects yet — create one with 'New project'."
+                   Style="{StaticResource Subtle}" Margin="0,0,0,16"
+                   Visibility="{Binding HasProjects, Converter={StaticResource InverseBoolToVisibility}}" />
+
+        <ListView ItemsSource="{Binding Projects}"
+                  SelectedItem="{Binding Selected}"
+                  Background="Transparent" BorderThickness="0"
+                  Foreground="{StaticResource Text}"
+                  ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+            <ListView.ItemContainerStyle>
+                <Style TargetType="ListViewItem">
+                    <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                    <Setter Property="Padding" Value="0" />
+                    <Setter Property="Margin" Value="0,0,0,8" />
+                    <Setter Property="Background" Value="Transparent" />
+                    <Setter Property="BorderThickness" Value="0" />
+                    <!-- Bare template: kills the default square selection/hover chrome that
+                         painted a 90-degree-cornered rectangle behind the rounded card -->
+                    <Setter Property="Template">
+                        <Setter.Value>
+                            <ControlTemplate TargetType="ListViewItem">
+                                <ContentPresenter />
+                            </ControlTemplate>
+                        </Setter.Value>
+                    </Setter>
+                </Style>
+            </ListView.ItemContainerStyle>
+            <ListView.ItemTemplate>
+                <DataTemplate>
+                    <!-- Selection now lives on the card itself: brand-tinted rounded border,
+                         so the highlight follows the corner radius instead of a square box -->
+                    <Border>
+                        <Border.Style>
+                            <Style TargetType="Border" BasedOn="{StaticResource Card}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsSelected, RelativeSource={RelativeSource AncestorType=ListViewItem}}"
+                                                 Value="True">
+                                        <Setter Property="BorderBrush" Value="{StaticResource Brand}" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                            </Style>
+                        </Border.Style>
+                        <StackPanel>
+                            <!-- Clickable header row: toggles the schedule details -->
+                            <Grid Cursor="Hand" Background="Transparent">
+                                <Grid.InputBindings>
+                                    <MouseBinding MouseAction="LeftClick"
+                                                  Command="{Binding DataContext.ToggleExpandCommand, RelativeSource={RelativeSource AncestorType=ListView}}"
+                                                  CommandParameter="{Binding}" />
+                                </Grid.InputBindings>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+
+                                <!-- Chevron: rotates when expanded -->
+                                <Path Grid.Column="0" Data="M2,4 L7,9 L12,4" Stroke="{StaticResource Muted}"
+                                      StrokeThickness="1.6" StrokeLineJoin="Round" StrokeStartLineCap="Round"
+                                      StrokeEndLineCap="Round" Width="14" Height="13" Stretch="None"
+                                      VerticalAlignment="Center" Margin="0,0,12,0"
+                                      RenderTransformOrigin="0.5,0.5">
+                                    <Path.Style>
+                                        <Style TargetType="Path">
+                                            <Setter Property="RenderTransform">
+                                                <Setter.Value>
+                                                    <RotateTransform Angle="-90" />
+                                                </Setter.Value>
+                                            </Setter>
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsExpanded}" Value="True">
+                                                    <Setter Property="RenderTransform">
+                                                        <Setter.Value>
+                                                            <RotateTransform Angle="0" />
+                                                        </Setter.Value>
+                                                    </Setter>
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </Path.Style>
+                                </Path>
+
+                                <StackPanel Grid.Column="1">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold"
+                                                   Foreground="{StaticResource Text}" FontSize="14" />
+                                        <Border Style="{StaticResource Pill}" Margin="10,0,0,0" Padding="8,2">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Ellipse Width="7" Height="7" Fill="{Binding StatusColor}" VerticalAlignment="Center" />
+                                                <TextBlock Text="{Binding Status}" Style="{StaticResource Subtle}"
+                                                           FontSize="11" Margin="6,0,0,0" />
+                                            </StackPanel>
+                                        </Border>
+                                        <Border Style="{StaticResource Pill}" Margin="6,0,0,0" Padding="8,2">
+                                            <TextBlock Text="{Binding BranchLabel}" Style="{StaticResource Subtle}"
+                                                       FontSize="11" FontFamily="{StaticResource MonoFont}" />
+                                        </Border>
+                                        <Border Style="{StaticResource Pill}" Margin="6,0,0,0" Padding="8,2">
+                                            <StackPanel Orientation="Horizontal">
+                                                <Ellipse Width="7" Height="7" Fill="{Binding ModeColor}" VerticalAlignment="Center" />
+                                                <TextBlock Text="{Binding ModeLabel}" Style="{StaticResource Subtle}"
+                                                           FontSize="11" Margin="6,0,0,0" />
+                                            </StackPanel>
+                                        </Border>
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding Project.RemoteUrl}" Style="{StaticResource Subtle}" Margin="0,4,0,0" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Margin="16,0" VerticalAlignment="Center">
+                                    <TextBlock Text="progress" Style="{StaticResource Subtle}" FontSize="10"
+                                               HorizontalAlignment="Right" />
+                                    <TextBlock Text="{Binding Progress}" Foreground="{StaticResource Brand}"
+                                               FontWeight="SemiBold" HorizontalAlignment="Right" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="3" Margin="16,0,0,0" VerticalAlignment="Center">
+                                    <TextBlock Text="next push" Style="{StaticResource Subtle}" FontSize="10"
+                                               HorizontalAlignment="Right" />
+                                    <TextBlock Text="{Binding NextPushLabel}" Foreground="{StaticResource Text}"
+                                               HorizontalAlignment="Right" />
+                                </StackPanel>
+                            </Grid>
+
+                            <!-- Progress bar -->
+                            <Grid Margin="0,12,0,0" Height="6">
+                                <Border Background="{StaticResource SurfaceAlt}" CornerRadius="3" />
+                                <Border Background="{StaticResource Brand}" CornerRadius="3"
+                                        HorizontalAlignment="Left">
+                                    <Border.Width>
+                                        <MultiBinding Converter="{StaticResource PercentToWidth}">
+                                            <Binding Path="ProgressPercent" />
+                                            <Binding Path="ActualWidth" RelativeSource="{RelativeSource AncestorType=Grid}" />
+                                        </MultiBinding>
+                                    </Border.Width>
+                                </Border>
+                            </Grid>
+
+                            <!-- Expanded: full commit schedule -->
+                            <StackPanel Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibility}}"
+                                        Margin="0,14,0,0">
+                                <Border Background="{StaticResource SurfaceAlt}" CornerRadius="6" Padding="12,8">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="36" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="95" />
+                                            <ColumnDefinition Width="60" />
+                                            <ColumnDefinition Width="80" />
+                                            <ColumnDefinition Width="80" />
+                                            <ColumnDefinition Width="44" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="#" Style="{StaticResource Subtle}" FontSize="11" FontWeight="SemiBold" />
+                                        <TextBlock Grid.Column="1" Text="Commit" Style="{StaticResource Subtle}" FontSize="11" FontWeight="SemiBold" />
+                                        <TextBlock Grid.Column="2" Text="Planned" Style="{StaticResource Subtle}" FontSize="11" FontWeight="SemiBold" />
+                                        <TextBlock Grid.Column="3" Text="Actual" Style="{StaticResource Subtle}" FontSize="11" FontWeight="SemiBold" />
+                                        <TextBlock Grid.Column="4" Text="Status" Style="{StaticResource Subtle}" FontSize="11" FontWeight="SemiBold" />
+                                        <TextBlock Grid.Column="5" Text="SHA" Style="{StaticResource Subtle}" FontSize="11" FontWeight="SemiBold" />
+                                    </Grid>
+                                </Border>
+                                <ItemsControl ItemsSource="{Binding Details}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate>
+                                            <Border BorderBrush="{StaticResource Border}" BorderThickness="0,0,0,1" Padding="12,7">
+                                                <StackPanel>
+                                                    <!-- Read row -->
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="36" />
+                                                            <ColumnDefinition Width="*" />
+                                                            <ColumnDefinition Width="95" />
+                                                            <ColumnDefinition Width="60" />
+                                                            <ColumnDefinition Width="80" />
+                                                            <ColumnDefinition Width="80" />
+                                                            <ColumnDefinition Width="44" />
+                                                        </Grid.ColumnDefinitions>
+                                                        <TextBlock Grid.Column="0" Text="{Binding OrderLabel}" Style="{StaticResource Subtle}"
+                                                                   FontSize="12" FontFamily="{StaticResource MonoFont}" />
+                                                        <TextBlock Grid.Column="1" Text="{Binding Message}" Foreground="{StaticResource Text}"
+                                                                   FontSize="12" TextTrimming="CharacterEllipsis" Margin="0,0,8,0" />
+                                                        <TextBlock Grid.Column="2" Text="{Binding Planned}" Style="{StaticResource Subtle}"
+                                                                   FontSize="12" FontFamily="{StaticResource MonoFont}" />
+                                                        <TextBlock Grid.Column="3" Text="{Binding Actual}" Style="{StaticResource Subtle}"
+                                                                   FontSize="12" FontFamily="{StaticResource MonoFont}" />
+                                                        <StackPanel Grid.Column="4" Orientation="Horizontal"
+                                                                    Background="Transparent"
+                                                                    ToolTip="{Binding StatusTooltip}"
+                                                                    ToolTipService.ShowDuration="30000">
+                                                            <Ellipse Width="7" Height="7" Fill="{Binding StatusColor}" VerticalAlignment="Center" />
+                                                            <TextBlock Text="{Binding StatusLabel}" Foreground="{Binding StatusColor}"
+                                                                       FontSize="12" Margin="6,0,0,0" />
+                                                        </StackPanel>
+                                                        <TextBlock Grid.Column="5" Text="{Binding ShortSha}" Style="{StaticResource Subtle}"
+                                                                   FontSize="12" FontFamily="{StaticResource MonoFont}" />
+                                                        <Button Grid.Column="6" Content="Edit" FontSize="11" Padding="6,1"
+                                                                Style="{StaticResource GhostButton}"
+                                                                Command="{Binding BeginEditCommand}"
+                                                                Visibility="{Binding CanEdit, Converter={StaticResource BoolToVisibility}}"
+                                                                ToolTip="Edit this pending commit's message and planned time" />
+                                                    </Grid>
+
+                                                    <!-- Inline editor (pending rows only) -->
+                                                    <Border Visibility="{Binding IsEditing, Converter={StaticResource BoolToVisibility}}"
+                                                            Background="{StaticResource SurfaceAlt}" CornerRadius="6"
+                                                            Padding="10" Margin="36,8,0,2">
+                                                        <StackPanel>
+                                                            <Grid>
+                                                                <Grid.ColumnDefinitions>
+                                                                    <ColumnDefinition Width="*" />
+                                                                    <ColumnDefinition Width="10" />
+                                                                    <ColumnDefinition Width="150" />
+                                                                </Grid.ColumnDefinitions>
+                                                                <StackPanel Grid.Column="0">
+                                                                    <TextBlock Text="Commit message" Style="{StaticResource Subtle}" FontSize="11" Margin="0,0,0,3" />
+                                                                    <TextBox Text="{Binding EditMessage, UpdateSourceTrigger=PropertyChanged}" FontSize="12" />
+                                                                </StackPanel>
+                                                                <StackPanel Grid.Column="2">
+                                                                    <TextBlock Text="Planned (yyyy-MM-dd HH:mm)" Style="{StaticResource Subtle}" FontSize="11" Margin="0,0,0,3" />
+                                                                    <TextBox Text="{Binding EditWhen, UpdateSourceTrigger=PropertyChanged}"
+                                                                             FontSize="12" FontFamily="{StaticResource MonoFont}" />
+                                                                </StackPanel>
+                                                            </Grid>
+                                                            <TextBlock Text="{Binding EditError}" Foreground="{StaticResource Danger}" FontSize="11"
+                                                                       Margin="0,6,0,0" TextWrapping="Wrap" />
+                                                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                                                <Button Content="Save" Style="{StaticResource PrimaryButton}" Padding="12,3"
+                                                                        FontSize="12" Command="{Binding SaveEditCommand}" />
+                                                                <Button Content="Cancel" Style="{StaticResource GhostButton}" Padding="12,3"
+                                                                        FontSize="12" Margin="8,0,0,0" Command="{Binding CancelEditCommand}" />
+                                                            </StackPanel>
+                                                        </StackPanel>
+                                                    </Border>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+
+        <!-- Recent activity -->
+        <TextBlock Text="Recent activity" Foreground="{StaticResource Text}" FontWeight="SemiBold"
+                   FontSize="14" Margin="0,16,0,10" />
+
+        <TextBlock Text="No pushes executed yet — activity appears here once the worker starts pushing."
+                   Style="{StaticResource Subtle}"
+                   Visibility="{Binding HasActivity, Converter={StaticResource InverseBoolToVisibility}}" />
+
+        <Border Style="{StaticResource Card}" Padding="0"
+                Visibility="{Binding HasActivity, Converter={StaticResource BoolToVisibility}}">
+            <ItemsControl ItemsSource="{Binding RecentActivity}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border BorderBrush="{StaticResource Border}" BorderThickness="0,0,0,1" Padding="16,10">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                </Grid.ColumnDefinitions>
+                                <Ellipse Grid.Column="0" Width="8" Height="8" Fill="{Binding ResultColor}"
+                                         VerticalAlignment="Center" Margin="0,0,12,0" />
+                                <StackPanel Grid.Column="1">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Text="{Binding ProjectName}" Foreground="{StaticResource Text}"
+                                                   FontWeight="SemiBold" FontSize="12" />
+                                        <TextBlock Text="{Binding ResultLabel}" Foreground="{Binding ResultColor}"
+                                                   FontSize="12" Margin="8,0,0,0" />
+                                    </StackPanel>
+                                    <TextBlock Text="{Binding Summary}" Style="{StaticResource Subtle}"
+                                               FontSize="11" TextTrimming="CharacterEllipsis" Margin="0,2,0,0" />
+                                </StackPanel>
+                                <TextBlock Grid.Column="2" Text="{Binding When}" Style="{StaticResource Subtle}"
+                                           FontSize="11" VerticalAlignment="Center" Margin="12,0,0,0" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </Border>
+    </StackPanel>
+</UserControl>

@@ -1,0 +1,16 @@
+<Application x:Class="Pusher.App.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mvvm="clr-namespace:Pusher.App.Mvvm">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Themes/Dark.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <mvvm:BoolToVisibilityConverter x:Key="BoolToVisibility" />
+            <mvvm:BoolToVisibilityConverter x:Key="InverseBoolToVisibility" Invert="True" />
+            <mvvm:StringEqualsConverter x:Key="StringEquals" />
+            <mvvm:PercentToWidthConverter x:Key="PercentToWidth" />
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

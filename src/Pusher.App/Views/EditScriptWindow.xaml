@@ -1,0 +1,113 @@
+<Window x:Class="Pusher.App.Views.EditScriptWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Edit PushScript"
+        Icon="pack://application:,,,/Assets/logo256.png"
+        Width="860" Height="680" MinWidth="640" MinHeight="480"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource Bg}"
+        WindowStyle="None">
+
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="36" ResizeBorderThickness="6"
+                      GlassFrameThickness="0" UseAeroCaptionButtons="False" />
+    </WindowChrome.WindowChrome>
+
+    <Border BorderBrush="{StaticResource WindowEdge}" BorderThickness="1">
+    <DockPanel>
+
+        <!-- Title bar -->
+        <Grid DockPanel.Dock="Top" Height="36" Background="{StaticResource Surface}">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="12,0,0,0">
+                <Path Data="{StaticResource AppLogo}" Fill="{StaticResource Text}"
+                      Width="14" Height="14" Stretch="Uniform" VerticalAlignment="Center" />
+                <TextBlock Text="Edit PushScript" Foreground="{StaticResource Text}"
+                           FontSize="12" FontWeight="Medium" Margin="9,0,0,0" VerticalAlignment="Center" />
+            </StackPanel>
+            <Button Style="{StaticResource CaptionCloseButton}" HorizontalAlignment="Right"
+                    Click="OnTitleCloseClick" WindowChrome.IsHitTestVisibleInChrome="True"
+                    AutomationProperties.Name="Close" />
+        </Grid>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,12">
+            <TextBlock Text="{Binding ProjectName, StringFormat='Edit PushScript — {0}'}"
+                       FontSize="18" FontWeight="SemiBold" Foreground="{StaticResource Text}" />
+            <TextBlock Style="{StaticResource Subtle}" Margin="0,4,0,0" TextWrapping="Wrap"
+                       Text="Changes apply to PENDING pushes only: commits already pushed are never rewritten. Saving re-plans the remaining schedule with the project's original seed." />
+        </StackPanel>
+
+        <!-- Script editor -->
+        <Border Grid.Row="1" Background="{StaticResource Surface}" BorderBrush="{StaticResource Border}"
+                BorderThickness="1" CornerRadius="8">
+            <TextBox Text="{Binding ScriptText, UpdateSourceTrigger=PropertyChanged}"
+                     AcceptsReturn="True" AcceptsTab="True" TextWrapping="NoWrap"
+                     VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                     FontFamily="{StaticResource MonoFont}" FontSize="13"
+                     Foreground="{StaticResource Text}" Background="Transparent"
+                     BorderThickness="0" Padding="12" />
+        </Border>
+
+        <!-- Issues -->
+        <Border Grid.Row="2" Background="{StaticResource Surface}" BorderBrush="{StaticResource Border}"
+                BorderThickness="1" CornerRadius="8" Margin="0,10,0,0" MaxHeight="140"
+                Padding="8" Visibility="{Binding HasIssues, Converter={StaticResource BoolToVisibility}}">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding Issues}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Orientation="Horizontal" Margin="4,2">
+                                <TextBlock Text="{Binding Severity}" FontSize="11" FontWeight="SemiBold" Width="56">
+                                    <TextBlock.Style>
+                                        <Style TargetType="TextBlock">
+                                            <Setter Property="Foreground" Value="{StaticResource Muted}" />
+                                            <Style.Triggers>
+                                                <DataTrigger Binding="{Binding IsError}" Value="True">
+                                                    <Setter Property="Foreground" Value="{StaticResource Danger}" />
+                                                </DataTrigger>
+                                            </Style.Triggers>
+                                        </Style>
+                                    </TextBlock.Style>
+                                </TextBlock>
+                                <TextBlock Text="{Binding Code}" Style="{StaticResource Subtle}" FontSize="11"
+                                           FontFamily="{StaticResource MonoFont}" Width="120" />
+                                <TextBlock Text="{Binding Location}" Style="{StaticResource Subtle}" FontSize="11"
+                                           FontFamily="{StaticResource MonoFont}" Width="80" />
+                                <TextBlock Text="{Binding Message}" Foreground="{StaticResource Text}" FontSize="11"
+                                           TextWrapping="Wrap" MaxWidth="480" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+
+        <!-- Actions -->
+        <Grid Grid.Row="3" Margin="0,12,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="{Binding StatusMessage}" Style="{StaticResource Subtle}"
+                       VerticalAlignment="Center" TextWrapping="Wrap" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <Button Content="Validate" Style="{StaticResource GhostButton}"
+                        Command="{Binding ValidateCommand}" />
+                <Button Content="Cancel" Style="{StaticResource GhostButton}" Margin="8,0,0,0"
+                        Command="{Binding CancelCommand}" />
+                <Button Content="Save and re-plan" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0"
+                        Command="{Binding SaveCommand}" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+    </DockPanel>
+    </Border>
+</Window>
